@@ -1,45 +1,23 @@
-import json
+import os
 
 import requests
+from dotenv import load_dotenv
 
+load_dotenv()
 
-def login(config_file):
-    # Cargar credenciales desde el fichero de configuración
-    try:
-        with open(config_file, "r") as file:
-            config = json.load(file)
-            username = config["username"]
-            password = config["password"]
-    except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
-        print(f"Error al leer el archivo de configuración: {e}")
-        return None
-
-    # Configura el endpoint y los datos
+def obtener_token():
     url = "https://scout.circutor.com/api/v2/user/login"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json"
-    }
     payload = {
-        "username": username,
-        "password": password
+        "username": os.getenv("USERNAME"),
+        "password": os.getenv("PASSWORD")
     }
-
-    # Realizar la solicitud POST
+    headers = {"Content-Type": "application/json", "accept": "application/json"}
+    
     try:
         response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("status") == "OK":
-                token = data["data"]["token"]
-                print("Token Bearer obtenido con éxito:")
-                print(f"Bearer {token}")
-                return token
-            else:
-                print("Error en la respuesta del servidor:", data)
-        else:
-            print(f"Error en la solicitud: {response.status_code} - {response.text}")
-    except requests.exceptions.RequestException as e:
-        print(f"Error en la conexión: {e}")
-
-    return None
+        response.raise_for_status()
+        data = response.json()
+        return data["data"]["token"] if data.get("status") == "OK" else None
+    except Exception as e:
+        print(f"Error al obtener el token: {e}")
+        return None
